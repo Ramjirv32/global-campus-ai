@@ -1,9 +1,12 @@
+import { searchWithSerpApi, extractUniversitiesFromSerp } from './serpApiService';
+
 const UNIVERSITIES_API_BASE = 'https://universities.hipolabs.com/search';
 
 export interface University {
   name: string;
-  country: string;
+  country?: string;
   website: string;
+  description?: string;
 }
 
 export interface ChatResponse {
@@ -24,25 +27,36 @@ export const searchUniversities = async (query: string): Promise<ChatResponse> =
     };
   }
   
+  // First, try SERP API for more comprehensive results
+  try {
+    const serpResults = await searchWithSerpApi(query + ' university official website');
+    
+    if (serpResults && serpResults.length > 0) {
+      const universities = extractUniversitiesFromSerp(serpResults);
+      
+      if (universities.length > 0) {
+        // Convert to our University format
+        const formattedUniversities: University[] = universities.map(uni => ({
+          name: uni.name,
+          website: uni.website,
+          description: uni.description,
+          country: extractCountryFromQuery(query) || 'Various'
+        }));
+        
+        return {
+          reply: `Here are the top universities from Google search results:`,
+          colleges: formattedUniversities
+        };
+      }
+    }
+  } catch (serpError) {
+    console.error('SERP API error, falling back to Hipolabs:', serpError);
+  }
+  
+  // Fallback to Hipolabs API if SERP fails or returns no results
   // Extract country or search term from query
   let searchParams = '';
-  
-  // Common country patterns
-  const countryPatterns = [
-    { pattern: /(?:in|from|of)\s+([a-zA-Z\s]+)$/i, group: 1 },
-    { pattern: /^([a-zA-Z\s]+)\s+(?:universities|colleges|schools)/i, group: 1 },
-    { pattern: /universities\s+(?:in|of)\s+([a-zA-Z\s]+)/i, group: 1 },
-    { pattern: /top\s+(?:universities|colleges)\s+(?:in|of)\s+([a-zA-Z\s]+)/i, group: 1 }
-  ];
-  
-  let country = '';
-  for (const { pattern, group } of countryPatterns) {
-    const match = query.match(pattern);
-    if (match && match[group]) {
-      country = match[group].trim();
-      break;
-    }
-  }
+  const country = extractCountryFromQuery(query);
   
   // If we found a country, search by country
   if (country) {
@@ -95,3 +109,22 @@ export const searchUniversities = async (query: string): Promise<ChatResponse> =
     };
   }
 };
+
+// Helper function to extract country from query
+function extractCountryFromQuery(query: string): string {
+  const countryPatterns = [
+    { pattern: /(?:in|from|of)\s+([a-zA-Z\s]+)$/i, group: 1 },
+    { pattern: /^([a-zA-Z\s]+)\s+(?:universities|colleges|schools)/i, group: 1 },
+    { pattern: /universities\s+(?:in|of)\s+([a-zA-Z\s]+)/i, group: 1 },
+    { pattern: /top\s+(?:universities|colleges)\s+(?:in|of)\s+([a-zA-Z\s]+)/i, group: 1 }
+  ];
+  
+  for (const { pattern, group } of countryPatterns) {
+    const match = query.match(pattern);
+    if (match && match[group]) {
+      return match[group].trim();
+    }
+  }
+  
+  return '';
+}

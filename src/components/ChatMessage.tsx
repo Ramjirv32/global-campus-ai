@@ -7,8 +7,9 @@ interface ChatMessageProps {
   isUser: boolean;
   colleges?: Array<{
     name: string;
-    country: string;
+    country?: string;
     website: string;
+    description?: string;
   }>;
 }
 
@@ -49,7 +50,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, isUser, colleges }) 
                 <thead>
                   <tr className="bg-table-header text-table-header-foreground">
                     <th className="px-4 py-3 text-left text-sm font-semibold">College/University</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold">Country</th>
+                    {colleges[0]?.country && <th className="px-4 py-3 text-left text-sm font-semibold">Country</th>}
+                    {colleges[0]?.description && <th className="px-4 py-3 text-left text-sm font-semibold">Description</th>}
                     <th className="px-4 py-3 text-left text-sm font-semibold">Website</th>
                   </tr>
                 </thead>
@@ -62,8 +64,15 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, isUser, colleges }) 
                         index % 2 === 0 ? "bg-table-row-even" : "bg-table-row-odd"
                       )}
                     >
-                      <td className="px-4 py-3 text-sm text-foreground">{college.name}</td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">{college.country}</td>
+                      <td className="px-4 py-3 text-sm text-foreground font-medium">{college.name}</td>
+                      {colleges[0]?.country && (
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{college.country || 'N/A'}</td>
+                      )}
+                      {colleges[0]?.description && (
+                        <td className="px-4 py-3 text-sm text-muted-foreground max-w-md">
+                          <span className="line-clamp-2">{college.description}</span>
+                        </td>
+                      )}
                       <td className="px-4 py-3 text-sm">
                         <a 
                           href={college.website} 

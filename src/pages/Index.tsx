@@ -11,8 +11,9 @@ interface Message {
   isUser: boolean;
   colleges?: Array<{
     name: string;
-    country: string;
+    country?: string;
     website: string;
+    description?: string;
   }>;
 }
 
